@@ -1,4 +1,4 @@
-### Convert Cityscape dataset to 19 label images
+### Convert Cityscape dataset to 19 label images 
 
 git clone https://github.com/freedrone/cityscapesScripts.git
 * python setup.py install (check for requirements)
@@ -30,3 +30,5 @@ python <img_folder> <out_dir>
 Set --data-root ../datasets/nemodrive
 
 CUDA_VISIBLE_DEVICES=0 python test.py --dataset cityscapes --model danet --resume-dir cityscapes/model --base-size 2048 --crop-size 768 --workers 12 --backbone resnet101 --multi-grid --multi-dilation 4 8 16 --eval --data-root ../datasets/nemodrive
+
+<problems with single GPU>
