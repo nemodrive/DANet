@@ -27,6 +27,8 @@ if torch_ver == '0.3':
 def test(args):
     # output folder
     outdir = '%s/danet_vis'%(args.dataset)
+    root_dir = getattr(args, "data_root", '../datasets')
+
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     # data transforms
@@ -36,10 +38,10 @@ def test(args):
     # dataset
     if args.eval:
         testset = get_segmentation_dataset(args.dataset, split='val', mode='testval',
-                                           transform=input_transform)
+                                           transform=input_transform, root=root_dir)
     else:#set split='test' for test set
         testset = get_segmentation_dataset(args.dataset, split='val', mode='vis',
-                                           transform=input_transform)
+                                           transform=input_transform, root=root_dir)
     # dataloader
     loader_kwargs = {'num_workers': args.workers, 'pin_memory': True} \
         if args.cuda else {}
@@ -99,6 +101,7 @@ def test(args):
     total_inter, total_union, total_correct, total_label = \
         np.int64(0), np.int64(0), np.int64(0), np.int64(0)
     for i, (image, dst) in enumerate(tbar):
+
         if torch_ver == "0.3":
             image = Variable(image, volatile=True)
             correct, labeled, inter, union = eval_batch(image, dst, evaluator, args.eval)

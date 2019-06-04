@@ -32,6 +32,8 @@ if torch_ver == '0.3':
 class Trainer():
     def __init__(self, args):
         self.args = args
+        root_dir = getattr(args, "data_root", '../datasets')
+
         args.log_name = str(args.checkname)
         self.logger = utils.create_logger(args.log_root, args.log_name)
         # data transforms
@@ -42,13 +44,14 @@ class Trainer():
         data_kwargs = {'transform': input_transform, 'base_size': args.base_size,
                        'crop_size': args.crop_size, 'logger': self.logger,
                        'scale': args.scale}
-        trainset = get_segmentation_dataset(args.dataset, split='train', mode='train',
+        trainset = get_segmentation_dataset(args.dataset, split='train', mode='train', root=root_dir,
                                             **data_kwargs)
-        testset = get_segmentation_dataset(args.dataset, split='val', mode='val',
+        testset = get_segmentation_dataset(args.dataset, split='val', mode='val', root=root_dir,
                                            **data_kwargs)
         # dataloader
         kwargs = {'num_workers': args.workers, 'pin_memory': True} \
             if args.cuda else {}
+
         self.trainloader = data.DataLoader(trainset, batch_size=args.batch_size,
                                            drop_last=True, shuffle=True, **kwargs)
         self.valloader = data.DataLoader(testset, batch_size=args.batch_size,
@@ -58,7 +61,7 @@ class Trainer():
         model = get_segmentation_model(args.model, dataset=args.dataset,
                                        backbone=args.backbone,
                                        aux=args.aux, se_loss=args.se_loss,
-                                       norm_layer=BatchNorm2d,
+                                       norm_layer=torch.nn.BatchNorm2d,
                                        base_size=args.base_size, crop_size=args.crop_size,
                                        multi_grid=args.multi_grid,
                                        multi_dilation=args.multi_dilation)
@@ -80,8 +83,11 @@ class Trainer():
         self.model, self.optimizer = model, optimizer
         # using cuda
         if args.cuda:
-            self.model = DataParallelModel(self.model).cuda()
+            # self.model = DataParallelModel(self.model).cuda()
+            self.model = self.model.cuda()
+            self.model.pretrained = self.model.pretrained.cuda()
             self.criterion = DataParallelCriterion(self.criterion).cuda()
+            # self.criterion = self.criterion.cuda()
         # finetune from a trained model
         if args.ft:
             args.start_epoch = 0
@@ -122,9 +128,12 @@ class Trainer():
             if torch_ver == "0.3":
                 image = Variable(image)
                 target = Variable(target)
+
+            image = image.cuda()
+            target = image.cuda()
+            # print(self.model.device)
             outputs = self.model(image)
-            print(type(outputs))
-            print(outputs.size())
+
             loss = self.criterion(outputs, target)
             loss.backward()
             self.optimizer.step()

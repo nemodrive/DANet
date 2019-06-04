@@ -12,6 +12,10 @@ class Options():
     def __init__(self):
         parser = argparse.ArgumentParser(description='PyTorch \
             Segmentation')
+        # nemodrive Options
+        parser.add_argument('--data-root', type=str, default='../datasets',
+                            help='Root folder for dataset')
+
         # model and dataset 
         parser.add_argument('--model', type=str, default='encnet',
                             help='model name (default: encnet)')
