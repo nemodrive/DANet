@@ -15,6 +15,8 @@ class Options():
         # nemodrive Options
         parser.add_argument('--data-root', type=str, default='../datasets',
                             help='Root folder for dataset')
+        parser.add_argument('--wo-backbone', action='store_true', default=False,
+                            help='finetuning without backbone')
 
         # model and dataset 
         parser.add_argument('--model', type=str, default='encnet',

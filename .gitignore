@@ -1,3 +1,7 @@
+datasets/
+danet/cityscapes/
+danet/pretrain_models/
+
 .idea*
 *.DS_Store
 *.swp

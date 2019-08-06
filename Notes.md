@@ -23,10 +23,20 @@ Uptades for Pytorch-Encoding
 It will search for all images with suffix --ext and will consider labeled images named without <ext> *(but with img extension).
 Exports: original_image, colored_label and grayscale_trainIds_image, fine_train.txt, fine_val.txt -> {args.out}/cityscapes
 
-python <img_folder> <out_dir>
+python -m scripts.prepare_nemodrive <img_folder> <out_dir>
 
 ### Eval nemodrive dataset
 
 Set --data-root ../datasets/nemodrive
 
 CUDA_VISIBLE_DEVICES=0 python test.py --dataset cityscapes --model danet --resume-dir cityscapes/model --base-size 2048 --crop-size 768 --workers 12 --backbone resnet101 --multi-grid --multi-dilation 4 8 16 --eval --data-root ../datasets/nemodrive
+
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 python fine_tune.py --dataset cityscapes --model  danet --backbone resnet101 --checkname danet101  --base-size 640 --crop-size 240 --epochs 240 --batch-size 8 --lr 0.003 --workers 24 --multi-grid --multi-dilation 4 8 16  --data-root ../datasets/nemodrive --ft --ft-resume cityscapes/model/DANet101.pth.tar
+
+
+Two class
+CUDA_VISIBLE_DEVICES=0,1,2,3 python fine_tune.py --dataset cityscapes --model  danet --backbone resnet101 --checkname danet101  --base-size 640 --crop-size 240 --epochs 240 --batch-size 8 --lr 0.003 --workers 24 --multi-grid --multi-dilation 4 8 16  --data-root ../datasets/nemodrive_two_class --ft --ft-resume cityscapes/model/DANet101.pth.tar
+
+CUDA_VISIBLE_DEVICES=0,1,2,3 python fine_tune.py --dataset cityscapes --model  danet --backbone resnet101 --checkname danet101  --base-size 640 --crop-size 240 --epochs 140 --batch-size 32 --lr 0.003 --workers 24 --multi-grid --multi-dilation 4 8 16  --data-root ../datasets/nemodrive_two_class --ft --ft-resume cityscapes/model/DANet101.pth.tarCUDA_VISIBLE_DEVICES=0,1,2,3 python fine_tune.py --dataset cityscapes --model  danet --backbone resnet101 --checkname danet101  --base-size 640 --crop-size 240 --epochs 140 --batch-size 32 --lr 0.003 --workers 24 --multi-grid --multi-dilation 4 8 16  --data-root ../datasets/nemodrive_two_class --ft --ft-resume cityscapes/model/DANet101.pth.tar
+--wo-backbone

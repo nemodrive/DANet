@@ -32,9 +32,10 @@ if torch_ver == '0.3':
 class Trainer():
     def __init__(self, args):
         self.args = args
-        root_dir = getattr(args, "data_root", '../datasets')
-
         args.log_name = str(args.checkname)
+        root_dir = getattr(args, "data_root", '../datasets')
+        wo_head = getattr(args, "resume_wo_head", False)
+
         self.logger = utils.create_logger(args.log_root, args.log_name)
         # data transforms
         input_transform = transform.Compose([
@@ -51,24 +52,29 @@ class Trainer():
         # dataloader
         kwargs = {'num_workers': args.workers, 'pin_memory': True} \
             if args.cuda else {}
-
         self.trainloader = data.DataLoader(trainset, batch_size=args.batch_size,
                                            drop_last=True, shuffle=True, **kwargs)
         self.valloader = data.DataLoader(testset, batch_size=args.batch_size,
                                          drop_last=False, shuffle=False, **kwargs)
         self.nclass = trainset.num_class
+
         # model
         model = get_segmentation_model(args.model, dataset=args.dataset,
                                        backbone=args.backbone,
                                        aux=args.aux, se_loss=args.se_loss,
-                                       norm_layer=torch.nn.BatchNorm2d,
+                                       norm_layer=BatchNorm2d,
                                        base_size=args.base_size, crop_size=args.crop_size,
                                        multi_grid=args.multi_grid,
                                        multi_dilation=args.multi_dilation)
         #print(model)
         self.logger.info(model)
         # optimizer using different LR
-        params_list = [{'params': model.pretrained.parameters(), 'lr': args.lr},]
+
+        if not args.wo_backbone:
+            params_list = [{'params': model.pretrained.parameters(), 'lr': args.lr},]
+        else:
+            params_list = []
+
         if hasattr(model, 'head'):
             params_list.append({'params': model.head.parameters(), 'lr': args.lr*10})
         if hasattr(model, 'auxlayer'):
@@ -81,22 +87,32 @@ class Trainer():
         #self.criterion = SegmentationLosses(se_loss=args.se_loss, aux=args.aux,nclass=self.nclass)
 
         self.model, self.optimizer = model, optimizer
+
         # using cuda
         if args.cuda:
-            # self.model = DataParallelModel(self.model).cuda()
-            self.model = self.model.cuda()
-            self.model.pretrained = self.model.pretrained.cuda()
+            self.model = DataParallelModel(self.model).cuda()
             self.criterion = DataParallelCriterion(self.criterion).cuda()
-            # self.criterion = self.criterion.cuda()
+
         # finetune from a trained model
         if args.ft:
             args.start_epoch = 0
             checkpoint = torch.load(args.ft_resume)
+            if wo_head:
+                print("WITHout HEAD !!!!!!!!!!")
+                from collections import OrderedDict
+                new = OrderedDict()
+                for k, v in checkpoint['state_dict'].items():
+                    if not k.startswith("head"):
+                        new[k] = v
+                checkpoint['state_dict'] = new
+            else:
+                print("With HEAD !!!!!!!!!!")
+
             if args.cuda:
                 self.model.module.load_state_dict(checkpoint['state_dict'], strict=False)
             else:
                 self.model.load_state_dict(checkpoint['state_dict'], strict=False)
-            self.logger.info("=> loaded checkpoint '{}' (epoch {})".format(args.ft_resume, checkpoint['epoch']))
+            # self.logger.info("=> loaded checkpoint '{}' (epoch {})".format(args.ft_resume, checkpoint['epoch']))
         # resuming checkpoint
         if args.resume:
             if not os.path.isfile(args.resume):
@@ -128,12 +144,7 @@ class Trainer():
             if torch_ver == "0.3":
                 image = Variable(image)
                 target = Variable(target)
-
-            image = image.cuda()
-            target = image.cuda()
-            # print(self.model.device)
             outputs = self.model(image)
-
             loss = self.criterion(outputs, target)
             loss.backward()
             self.optimizer.step()

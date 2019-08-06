@@ -15,8 +15,11 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('dir', type=str, default=None, help='dataset directory on disk')
     parser.add_argument('out_dir', type=str, default=None, help='generate out_folder')
-    parser.add_argument('--split', type=float, default=0.8, help='Training split factor')
+    parser.add_argument('--split', type=float, default=0.7, help='Training split factor')
     parser.add_argument('--ext', type=str, default="-frame.png", help='img extension')
+    parser.add_argument('--seed', type=int, default=1, help='Seed split')
+    parser.add_argument('--two-class', action='store_true', default= False,
+                            help='Generate two class')
     args = parser.parse_args()
     return args
 
@@ -26,9 +29,16 @@ if __name__ == "__main__":
 
     img_paths = glob.glob(f"{args.dir}/**/*{args.ext}", recursive=True)
     no_imgs = len(img_paths)
-    out_dir = f"{args.out}/cityscapes"
+    out_dir = f"{args.out_dir}/cityscapes"
 
     print(f"Found: {len(img_paths)}")
+    print(f"Seed: {args.seed}")
+    print(f"Two class: {args.two_class}")
+    two_class = args.two_class
+
+    # Random seed
+    np.random.seed(args.seed)
+    random.seed(args.seed)
 
     out_img_folder = "out_images"
     out_dir_imgs = f"{out_dir}/{out_img_folder}"
@@ -51,6 +61,7 @@ if __name__ == "__main__":
     road_color = np.array(name2label["road"].color, dtype=np.uint8)
     road_id = name2label["road"].trainId
     idx = 0
+    fill_value = 1 if two_class else 255
     for img_paths, log_file in [(train_paths, train_file), (test_paths, test_file)]:
         for x in img_paths:
             dir_source = os.path.dirname(x)
@@ -62,12 +73,17 @@ if __name__ == "__main__":
 
             # Label image transform to class color
             img = cv2.imread(label_img_path)
+
+            if img is None:
+                print(f"Error loading {label_img_path}")
+                continue
+
             select_class = np.all(img[:, :] == np.array([255, 255, 255], dtype=np.uint8), axis=2)
             img[select_class] = road_color
 
             # Generate train img
             out_train_img = np.zeros(img.shape[:2], dtype=np.uint8)
-            out_train_img.fill(255)
+            out_train_img.fill(fill_value)
             out_train_img[select_class] = road_id
 
             # Rename images (no groups)

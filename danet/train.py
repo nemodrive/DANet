@@ -123,8 +123,6 @@ class Trainer():
                 image = Variable(image)
                 target = Variable(target)
             outputs = self.model(image)
-            print(type(outputs))
-            print(outputs.size())
             loss = self.criterion(outputs, target)
             loss.backward()
             self.optimizer.step()
