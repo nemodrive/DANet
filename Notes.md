@@ -1,4 +1,4 @@
-### Convert Cityscape dataset to 19 label images
+### Convert Cityscape dataset to 19 label images 
 
 git clone https://github.com/freedrone/cityscapesScripts.git
 * python setup.py install (check for requirements)
@@ -34,9 +34,15 @@ CUDA_VISIBLE_DEVICES=0 python test.py --dataset cityscapes --model danet --resum
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 python fine_tune.py --dataset cityscapes --model  danet --backbone resnet101 --checkname danet101  --base-size 640 --crop-size 240 --epochs 240 --batch-size 8 --lr 0.003 --workers 24 --multi-grid --multi-dilation 4 8 16  --data-root ../datasets/nemodrive --ft --ft-resume cityscapes/model/DANet101.pth.tar
 
+#### Two class
 
-Two class
+#####TODO adapt fine_tune script to call methods (batch_pix_accuracy & batch_intersection_union) with nclass=2
+#####TODO adapt fine_tune CityscapesSegmentation with num_class=2
+
 CUDA_VISIBLE_DEVICES=0,1,2,3 python fine_tune.py --dataset cityscapes --model  danet --backbone resnet101 --checkname danet101  --base-size 640 --crop-size 240 --epochs 240 --batch-size 8 --lr 0.003 --workers 24 --multi-grid --multi-dilation 4 8 16  --data-root ../datasets/nemodrive_two_class --ft --ft-resume cityscapes/model/DANet101.pth.tar
+
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 python fine_tune.py --dataset cityscapes --model  danet --backbone resnet101 --checkname danet101  --base-size 640 --crop-size 240 --epochs 140 --batch-size 32 --lr 0.003 --workers 24 --multi-grid --multi-dilation 4 8 16  --data-root ../datasets/nemodrive_two_class --ft --ft-resume cityscapes/model/DANet101.pth.tarCUDA_VISIBLE_DEVICES=0,1,2,3 python fine_tune.py --dataset cityscapes --model  danet --backbone resnet101 --checkname danet101  --base-size 640 --crop-size 240 --epochs 140 --batch-size 32 --lr 0.003 --workers 24 --multi-grid --multi-dilation 4 8 16  --data-root ../datasets/nemodrive_two_class --ft --ft-resume cityscapes/model/DANet101.pth.tar
 --wo-backbone
+
+####problems with single GPU training
