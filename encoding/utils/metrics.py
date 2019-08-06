@@ -11,13 +11,24 @@
 import numpy as np
 import torch
 
-def batch_pix_accuracy(predict, target):
+def batch_pix_accuracy(predict, target, nclass=None):
     """Batch Pixel Accuracy
     Args:
         predict: input 4D tensor
         target: label 3D tensor
     """
+    # ======================================================
+    # Bad hard coding
+    if nclass == 2:
+        ROAD_CLASS = 0
+        predict_wor = predict.clone()
+        predict_wor[:, ROAD_CLASS] = 0
+        _, predict2 = torch.max(predict_wor, 1)
+        target[target == -1] = predict2[0][target == -1]
+    # ======================================================
+
     _, predict = torch.max(predict, 1)
+
     predict = predict.cpu().numpy() + 1
     target = target.cpu().numpy() + 1
     pixel_labeled = np.sum(target > 0)
@@ -34,6 +45,16 @@ def batch_intersection_union(predict, target, nclass):
         target: label 3D tensor
         nclass: number of categories (int)
     """
+    # ======================================================
+    # Bad hard coding
+    if nclass == 2:
+        ROAD_CLASS = 0
+        predict_wor = predict.clone()
+        predict_wor[:, ROAD_CLASS] = 0
+        _, predict2 = torch.max(predict_wor, 1)
+        target[target == -1] = predict2[0][target == -1]
+    # ======================================================
+
     _, predict = torch.max(predict, 1)
     mini = 1
     maxi = nclass

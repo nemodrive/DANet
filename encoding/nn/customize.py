@@ -86,7 +86,6 @@ class SegmentationLosses(CrossEntropyLoss):
         return tvect
 
 
-
 class SegmentationMultiLosses(CrossEntropyLoss):
     """2D Cross Entropy Loss with Multi-L1oss"""
     def __init__(self, nclass=-1, weight=None,size_average=True, ignore_index=-1):
@@ -99,11 +98,66 @@ class SegmentationMultiLosses(CrossEntropyLoss):
         *preds, target = tuple(inputs)
         pred1, pred2 ,pred3= tuple(preds)
 
+        loss1 = super(SegmentationMultiLosses, self).forward(pred1, target)
+        loss2 = super(SegmentationMultiLosses, self).forward(pred2, target)
+        loss3 = super(SegmentationMultiLosses, self).forward(pred3, target)
+        loss = loss1 + loss2 + loss3
+        return loss
+
+
+from torch.nn import KLDivLoss, LogSoftmax, Softmax
+
+
+class SegmentationMultiLossesDistill(CrossEntropyLoss):
+    """2D Cross Entropy Loss with Multi-L1oss with distilation """
+
+    def __init__(self, nclass=-1, weight=None,size_average=True, ignore_index=-1):
+        super(SegmentationMultiLosses, self).__init__(weight, size_average, ignore_index)
+        self.nclass = nclass
+
+        self.eps = 0.001
+        self.l_log_softmax = Softmax(dim=1)
+        self.l_kl = KLDivLoss(reduction="none")
+
+    def forward(self, *inputs):
+
+        *preds, target = tuple(inputs)
+        pred1, pred2 ,pred3= tuple(preds)
+
 
         loss1 = super(SegmentationMultiLosses, self).forward(pred1, target)
         loss2 = super(SegmentationMultiLosses, self).forward(pred2, target)
         loss3 = super(SegmentationMultiLosses, self).forward(pred3, target)
         loss = loss1 + loss2 + loss3
+
+        # ==============================================================================================================
+        # Calculate loss for unlabeled
+
+        mask = ((target == -1).float()).detach()
+
+        def calc_loss(pred, mask, l_log_softmax, l_kl):
+            # min_road = pred.min().detach() - 0.
+            # print("min",min_road.item())
+            target_pred = pred.detach().clone()
+            # target_pred[:, 0] = min_road
+
+            logs_target = l_log_softmax(target_pred)
+            logs_target[:, 0] = 0.
+
+            logs_pred = l_log_softmax(pred)
+            kl_diff = ((logs_pred - logs_target) ** 2).sum(dim=1)
+
+            dist_loss = (kl_diff * mask).mean()
+            return dist_loss
+
+        dist_loss1 = calc_loss(pred1, mask, self.l_log_softmax, self.l_kl)
+        dist_loss2 = calc_loss(pred2, mask, self.l_log_softmax, self.l_kl)
+        dist_loss3 = calc_loss(pred3, mask, self.l_log_softmax, self.l_kl)
+
+        dist_loss = dist_loss1 + dist_loss2 + dist_loss3
+        loss += dist_loss
+        # ==============================================================================================================
+
         return loss
 
 

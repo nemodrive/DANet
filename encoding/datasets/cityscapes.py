@@ -18,11 +18,16 @@ import re
 from tqdm import tqdm
 from .base import BaseDataset
 
+
 class CityscapesSegmentation(BaseDataset):
     BASE_DIR = 'cityscapes'
     NUM_CLASS = 19
+
     def __init__(self, root='../datasets', split='train',
-                 mode=None, transform=None, target_transform=None, **kwargs):
+                 mode=None, transform=None, target_transform=None, num_class=None, **kwargs):
+        if num_class is not None:
+            self.NUM_CLASS = num_class
+
         super(CityscapesSegmentation, self).__init__(
             root, split, mode, transform, target_transform, **kwargs)
         # assert exists
@@ -33,7 +38,7 @@ class CityscapesSegmentation(BaseDataset):
         if split != 'vis':
             assert (len(self.images) == len(self.masks))
         if len(self.images) == 0:
-            raise(RuntimeError("Found 0 images in subfolders of: \
+            raise (RuntimeError("Found 0 images in subfolders of: \
                 " + root + "\n"))
 
     def __getitem__(self, index):
@@ -42,9 +47,9 @@ class CityscapesSegmentation(BaseDataset):
             if self.transform is not None:
                 img = self.transform(img)
             return img, os.path.basename(self.images[index])
-        
+
         mask = Image.open(self.masks[index])
-        
+
         # synchrosized transform
         if self.mode == 'train':
             img, mask = self._sync_transform(img, mask)
@@ -76,20 +81,21 @@ class CityscapesSegmentation(BaseDataset):
 
 
 def _get_cityscapes_pairs(folder, split='train'):
-    def get_path_pairs(folder,split_f):
+    def get_path_pairs(folder, split_f):
         img_paths = []
         mask_paths = []
         with open(split_f, 'r') as lines:
             for line in tqdm(lines):
                 ll_str = re.split('\t', line)
-                imgpath = os.path.join(folder,ll_str[0].rstrip())
-                maskpath = os.path.join(folder,ll_str[1].rstrip())
+                imgpath = os.path.join(folder, ll_str[0].rstrip())
+                maskpath = os.path.join(folder, ll_str[1].rstrip())
                 if os.path.isfile(maskpath):
                     img_paths.append(imgpath)
                     mask_paths.append(maskpath)
                 else:
                     print('cannot find the mask:', maskpath)
         return img_paths, mask_paths
+
     if split == 'train':
         split_f = os.path.join(folder, 'train_fine.txt')
         img_paths, mask_paths = get_path_pairs(folder, split_f)
